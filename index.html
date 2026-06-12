@@ -1,435 +1,473 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>甲状腺术后复查记录表（可视化）</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Microsoft Yahei", sans-serif;
-    }
-    body {
-      background-color: #f5f7fa;
-      padding: 20px;
-    }
-    .container {
-      max-width: 1300px;
-      margin: 0 auto;
-    }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 25px;
-      font-size: 24px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-    .form-item {
-      display: flex;
-      flex-direction: column;
-    }
-    label {
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: #444;
-      font-weight: 500;
-    }
-    input {
-      padding: 9px 12px;
-      border: 1px solid #dcdfe6;
-      border-radius: 6px;
-      font-size: 15px;
-    }
-    input:focus {
-      outline: none;
-      border-color: #409eff;
-    }
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 10px;
-    }
-    button {
-      padding: 10px 22px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-    #saveBtn {
-      background-color: #409eff;
-      color: #fff;
-    }
-    #clearAllBtn {
-      background-color: #f56c6c;
-      color: #fff;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      border: 1px solid #ebeef5;
-      padding: 10px 8px;
-      text-align: center;
-      font-size: 14px;
-    }
-    th {
-      background-color: #ecf5ff;
-      color: #2c3e50;
-    }
-    .status-normal {
-      color: #00b42a;
-      font-weight: bold;
-    }
-    .status-risk {
-      color: #f53f3f;
-      font-weight: bold;
-      background: #ffebee;
-    }
-    .charts-wrap {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-top: 20px;
-    }
-    @media(max-width: 992px) {
-      .charts-wrap {
-        grid-template-columns: 1fr;
-      }
-    }
-    canvas {
-      max-height: 380px;
-    }
-    .del-btn {
-      background: #ff7d7d;
-      color: white;
-      padding: 4px 8px;
-      font-size: 12px;
-    }
-    .tips {
-      background: #fff7e6;
-      border-left: 4px solid #ff7d00;
-      padding: 12px 16px;
-      margin-bottom: 15px;
-      border-radius: 4px;
-      font-size: 14px;
-      color: #d46b08;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>甲状腺术后复查记录表（自定义参考值+导入导出）</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-title {
+            font-size: 18px;
+            color: #34495e;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .form-item {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 9px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-add { background-color: #27ae60; color: #fff; }
+        .btn-clear { background-color: #e74c3c; color: #fff; }
+        .btn-ref { background-color: #9b59b6; color: #fff; }
+        .btn-export { background-color: #2980b9; color: #fff; }
+        .btn-import { background-color: #f39c12; color: #fff; }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #eee;
+            padding: 10px 6px;
+            text-align: center;
+            font-size: 13px;
+        }
+        th {
+            background-color: #3498db;
+            color: #fff;
+            position: sticky;
+            top: 0;
+        }
+        .normal {
+            color: #27ae60;
+            font-weight: 500;
+        }
+        .danger {
+            color: #e74c3c;
+            font-weight: bold;
+            background-color: #ffeaea;
+        }
+        .chart-box {
+            height: 400px;
+            margin-top: 10px;
+        }
+        .tip {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>甲状腺术后复查指标记录表（自动风险判定+趋势可视化）</h1>
+    <h1>甲状腺术后复查记录表</h1>
 
-  <div class="tips">
-    ⚠️ 高危异常指标自动标红风险提示；数据保存在当前浏览器本地，换浏览器/无痕模式数据不互通；可多次录入、永久留存、查看历次变化曲线
-  </div>
-
-  <!-- 录入表单区域 -->
-  <div class="card">
-    <h3 style="margin-bottom:16px;">新增一次复查记录</h3>
-    <div class="row">
-      <div class="form-item">
-        <label>复查日期</label>
-        <input type="date" id="checkDate" required>
-      </div>
-      <div class="form-item">
-        <label>钙 (mmol/L)</label>
-        <input type="number" step="0.01" id="calcium" placeholder="正常:2.10-2.55">
-      </div>
-      <div class="form-item">
-        <label>无机磷 (mmol/L)</label>
-        <input type="number" step="0.01" id="phosphorus" placeholder="正常:0.96-1.62">
-      </div>
-      <div class="form-item">
-        <label>TSH (mIU/L)</label>
-        <input type="number" step="0.001" id="tsh" placeholder="术后目标分层">
-      </div>
-      <div class="form-item">
-        <label>FT3 (pmol/L)</label>
-        <input type="number" step="0.01" id="ft3" placeholder="正常:3.1-6.8">
-      </div>
-      <div class="form-item">
-        <label>FT4 (pmol/L)</label>
-        <input type="number" step="0.01" id="ft4" placeholder="正常:12-22">
-      </div>
-      <div class="form-item">
-        <label>TGAb (IU/mL)</label>
-        <input type="number" step="1" id="tgab" placeholder="正常＜115">
-      </div>
-      <div class="form-item">
-        <label>TPOAb (IU/mL)</label>
-        <input type="number" step="1" id="tpoab" placeholder="正常＜34">
-      </div>
-      <div class="form-item">
-        <label>TG (ng/mL)</label>
-        <input type="number" step="0.01" id="tg" placeholder="术后关键监测">
-      </div>
-      <div class="form-item">
-        <label>PTH (pg/mL)</label>
-        <input type="number" step="0.1" id="pth" placeholder="正常:15-65">
-      </div>
+    <!-- 一、参考值自定义设置 -->
+    <div class="card">
+        <div class="form-title">参考范围设置（可自行修改）</div>
+        <div class="ref-grid" id="refPanel"></div>
+        <div class="btn-group">
+            <button class="btn-ref" onclick="saveReference()">保存参考范围</button>
+        </div>
+        <p class="tip">修改下限/上限后点击【保存参考范围】，异常判断规则立即生效</p>
     </div>
-    <div class="btn-group">
-      <button id="saveBtn">保存本次复查记录</button>
-      <button id="clearAllBtn">清空全部本地数据</button>
+
+    <!-- 二、新增复查数据 -->
+    <div class="card">
+        <div class="form-title">新增复查数据</div>
+        <div class="form-grid">
+            <div class="form-item">
+                <label>复查日期</label>
+                <input type="date" id="recordDate" required>
+            </div>
+            <div class="form-item">
+                <label>钙</label>
+                <input type="number" step="0.01" id="calcium" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>无机磷</label>
+                <input type="number" step="0.01" id="phosphorus" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>TSH</label>
+                <input type="number" step="0.01" id="tsh" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>FT3</label>
+                <input type="number" step="0.01" id="ft3" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>FT4</label>
+                <input type="number" step="0.01" id="ft4" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>TGAb</label>
+                <input type="number" step="0.01" id="tgab" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>TPOAb</label>
+                <input type="number" step="0.01" id="tpoab" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>TG 甲状腺球蛋白</label>
+                <input type="number" step="0.01" id="tg" placeholder="输入数值">
+            </div>
+            <div class="form-item">
+                <label>PTH 甲状旁腺激素</label>
+                <input type="number" step="0.01" id="pth" placeholder="输入数值">
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn-add" onclick="addRecord()">保存本次复查数据</button>
+            <button class="btn-clear" onclick="clearAllData()">清空全部记录</button>
+            <button class="btn-export" onclick="exportData()">导出全部数据</button>
+            <button class="btn-import" onclick="document.getElementById('fileInput').click()">导入备份数据</button>
+            <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+        </div>
+        <p class="tip">💡 数据本地永久保存；红色=指标异常；导出可备份，导入可恢复历史记录</p>
     </div>
-  </div>
 
-  <!-- 历史记录表格 -->
-  <div class="card">
-    <h3 style="margin-bottom:12px;">历次复查完整记录（异常标红）</h3>
-    <table id="recordTable">
-      <thead>
-        <tr>
-          <th>复查日期</th>
-          <th>钙</th>
-          <th>无机磷</th>
-          <th>TSH</th>
-          <th>FT3</th>
-          <th>FT4</th>
-          <th>TGAb</th>
-          <th>TPOAb</th>
-          <th>TG</th>
-          <th>PTH</th>
-          <th>综合状态</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
-
-  <!-- 可视化图表 -->
-  <div class="card">
-    <h3 style="margin-bottom:16px;">指标趋势可视化曲线</h3>
-    <div class="charts-wrap">
-      <div><canvas id="chart1"></canvas></div>
-      <div><canvas id="chart2"></canvas></div>
+    <!-- 三、历史记录表格 -->
+    <div class="card">
+        <div class="form-title">复查历史记录</div>
+        <div class="table-wrap">
+            <table id="recordTable">
+                <thead>
+                    <tr>
+                        <th>操作</th>
+                        <th>复查日期</th>
+                        <th>钙</th>
+                        <th>无机磷</th>
+                        <th>TSH</th>
+                        <th>FT3</th>
+                        <th>FT4</th>
+                        <th>TGAb</th>
+                        <th>TPOAb</th>
+                        <th>TG</th>
+                        <th>PTH</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
     </div>
-  </div>
-</div>
 
-<script>
-// ===================== 1. 参考正常范围配置 =====================
-const refRange = {
-  calcium: { min: 2.10, max: 2.55, name: "钙" },
-  phosphorus: { min: 0.96, max: 1.62, name: "无机磷" },
-  ft3: { min: 3.1, max: 6.8, name: "FT3" },
-  ft4: { min: 12, max: 22, name: "FT4" },
-  tgab: { min: 0, max: 115, name: "TGAb" },
-  tpoab: { min: 0, max: 34, name: "TPOAb" },
-  pth: { min: 15, max: 65, name: "PTH" }
-};
+    <!-- 四、趋势可视化图表 -->
+    <div class="card">
+        <div class="form-title">指标趋势走势图</div>
+        <div class="chart-box">
+            <canvas id="dataChart"></canvas>
+        </div>
+    </div>
 
-// 高危判定规则（甲状腺术后专用）
-function getSingleStatus(key, val) {
-  if(val === '' || val === null || isNaN(val)) return 'empty';
-  const num = Number(val);
-  if(!refRange[key]) return 'normal';
-  const {min, max} = refRange[key];
-  if(num < min) return 'low';
-  if(num > max) return 'high';
-  return 'normal';
-}
+    <script>
+        // 默认参考范围
+        const defaultRef = {
+            calcium: { min: 2.10, max: 2.60, name: "钙" },
+            phosphorus: { min: 0.96, max: 1.62, name: "无机磷" },
+            tsh: { min: 0.27, max: 4.20, name: "TSH" },
+            ft3: { min: 3.10, max: 6.80, name: "FT3" },
+            ft4: { min: 12.00, max: 22.00, name: "FT4" },
+            tgab: { min: 0.00, max: 10.00, name: "TGAb" },
+            tpoab: { min: 0.00, max: 34.00, name: "TPOAb" },
+            tg: { min: 3.5, max: 77, name: "TG" },
+            pth: { min: 15, max: 68, name: "PTH" }
+        };
+        const keyList = Object.keys(defaultRef);
+        let chartInstance = null;
 
-// 综合是否存在风险
-function checkHasRisk(item) {
-  const keys = Object.keys(refRange);
-  for(let k of keys) {
-    const st = getSingleStatus(k, item[k]);
-    if(st === 'low' || st === 'high') return true;
-  }
-  // TSH、TG单独高危逻辑（甲癌术后）
-  const tsh = Number(item.tsh);
-  const tg = Number(item.tg);
-  // 高危患者TSH未达标、TG升高视为风险
-  if(!isNaN(tsh) && tsh > 0.5) return true;
-  if(!isNaN(tg) && tg > 1) return true;
-  return false;
-}
+        // ========== 本地存储工具 ==========
+        function getLocal(key) {
+            const val = localStorage.getItem(key);
+            return val ? JSON.parse(val) : null;
+        }
+        function setLocal(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
 
-// ===================== 2. 本地存储操作 =====================
-const STORAGE_KEY = 'thyroidCheckRecords';
-function getRecords() {
-  const str = localStorage.getItem(STORAGE_KEY);
-  return str ? JSON.parse(str) : [];
-}
-function saveRecords(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
+        // 读取/保存 自定义参考值
+        function getReference() {
+            let ref = getLocal('thyroidRef');
+            return ref ? ref : JSON.parse(JSON.stringify(defaultRef));
+        }
+        function saveReference() {
+            const ref = {};
+            keyList.forEach(key => {
+                const minVal = parseFloat(document.getElementById(`${key}_min`).value) || 0;
+                const maxVal = parseFloat(document.getElementById(`${key}_max`).value) || 9999;
+                ref[key] = {
+                    min: minVal,
+                    max: maxVal,
+                    name: defaultRef[key].name
+                };
+            });
+            setLocal('thyroidRef', ref);
+            alert("参考范围保存成功！");
+            renderTable();
+            renderChart();
+        }
 
-// ===================== 3. 渲染表格 =====================
-function renderTable() {
-  const list = getRecords();
-  const tbody = document.getElementById('tableBody');
-  tbody.innerHTML = '';
-  if(list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12">暂无复查记录，请录入第一条数据</td></tr>';
-    renderChart();
-    return;
-  }
+        // 渲染参考值编辑面板
+        function renderRefPanel() {
+            const ref = getReference();
+            const panel = document.getElementById('refPanel');
+            panel.innerHTML = '';
+            keyList.forEach(key => {
+                const item = ref[key];
+                const div = document.createElement('div');
+                div.className = 'form-item';
+                div.innerHTML = `
+                    <label>${item.name} 下限 / 上限</label>
+                    <div style="display:flex;gap:5px;">
+                        <input type="number" step="0.01" id="${key}_min" value="${item.min}">
+                        <input type="number" step="0.01" id="${key}_max" value="${item.max}">
+                    </div>
+                `;
+                panel.appendChild(div);
+            });
+        }
 
-  list.forEach((item, idx) => {
-    const tr = document.createElement('tr');
-    const risk = checkHasRisk(item);
-    const statusText = risk ? '<span class="status-risk">高危异常</span>' : '<span class="status-normal">全部正常</span>';
+        // ========== 复查记录操作 ==========
+        function getRecordData() {
+            let data = localStorage.getItem('thyroidRecord');
+            return data ? JSON.parse(data) : [];
+        }
+        function saveRecordData(arr) {
+            localStorage.setItem('thyroidRecord', JSON.stringify(arr));
+        }
 
-    const cellData = [
-      item.checkDate,
-      formatCell('calcium', item.calcium),
-      formatCell('phosphorus', item.phosphorus),
-      item.tsh || '-',
-      formatCell('ft3', item.ft3),
-      formatCell('ft4', item.ft4),
-      formatCell('tgab', item.tgab),
-      formatCell('tpoab', item.tpoab),
-      item.tg || '-',
-      formatCell('pth', item.pth),
-      statusText
-    ];
-    cellData.forEach(txt => {
-      const td = document.createElement('td');
-      td.innerHTML = txt;
-      tr.appendChild(td);
-    });
-    // 删除按钮
-    const tdDel = document.createElement('td');
-    const delBtn = document.createElement('button');
-    delBtn.className = 'del-btn';
-    delBtn.innerText = '删除';
-    delBtn.onclick = () => {
-      const arr = getRecords();
-      arr.splice(idx, 1);
-      saveRecords(arr);
-      renderTable();
-    };
-    tdDel.appendChild(delBtn);
-    tr.appendChild(tdDel);
-    tbody.appendChild(tr);
-  });
-  renderChart();
-}
+        // 判断指标是否异常
+        function isAbnormal(val, min, max) {
+            const num = parseFloat(val);
+            if (isNaN(num)) return false;
+            return num < min || num > max;
+        }
 
-// 单元格标色
-function formatCell(key, val) {
-  if(val === '' || val == null) return '-';
-  const st = getSingleStatus(key, val);
-  const v = Number(val).toFixed(2);
-  if(st === 'low' || st === 'high') {
-    return `<span class="status-risk">${v}</span>`;
-  }
-  return `<span class="status-normal">${v}</span>`;
-}
+        // 新增记录
+        function addRecord() {
+            const date = document.getElementById('recordDate').value;
+            if (!date) {
+                alert("请选择复查日期！");
+                return;
+            }
+            const record = {
+                date: date,
+                calcium: document.getElementById('calcium').value,
+                phosphorus: document.getElementById('phosphorus').value,
+                tsh: document.getElementById('tsh').value,
+                ft3: document.getElementById('ft3').value,
+                ft4: document.getElementById('ft4').value,
+                tgab: document.getElementById('tgab').value,
+                tpoab: document.getElementById('tpoab').value,
+                tg: document.getElementById('tg').value,
+                pth: document.getElementById('pth').value
+            };
+            let list = getRecordData();
+            list.push(record);
+            saveRecordData(list);
+            alert("数据保存成功！");
+            document.querySelectorAll('input[type="number"]').forEach(el => el.value = '');
+            renderTable();
+            renderChart();
+        }
 
-// ===================== 4. Chart.js 趋势绘图 =====================
-let chart1, chart2;
-function renderChart() {
-  const list = getRecords();
-  const dates = list.map(d => d.checkDate);
-  if(list.length < 2) {
-    destroyChart();
-    return;
-  }
-  destroyChart();
+        // 删除单条记录
+        function delRecord(index) {
+            let list = getRecordData();
+            list.splice(index, 1);
+            saveRecordData(list);
+            renderTable();
+            renderChart();
+        }
 
-  // 图表1：钙、磷、PTH、FT3、FT4
-  const ctx1 = document.getElementById('chart1').getContext('2d');
-  chart1 = new Chart(ctx1, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [
-        {label:'钙', data:list.map(i=>i.calcium), borderColor:'#409eff', tension:0.2},
-        {label:'无机磷', data:list.map(i=>i.phosphorus), borderColor:'#67c23a', tension:0.2},
-        {label:'PTH', data:list.map(i=>i.pth), borderColor:'#e6a23c', tension:0.2},
-        {label:'FT3', data:list.map(i=>i.ft3), borderColor:'#9b59b6', tension:0.2},
-        {label:'FT4', data:list.map(i=>i.ft4), borderColor:'#e74c3c', tension:0.2}
-      ]
-    },
-    options: {responsive:true, maintainAspectRatio:false, plugins:{title:{display:true, text:'血钙、磷、PTH、甲功激素趋势'}}
-  });
+        // 清空所有记录
+        function clearAllData() {
+            if (confirm("确定清空所有复查记录？此操作不可恢复！")) {
+                localStorage.removeItem('thyroidRecord');
+                renderTable();
+                renderChart();
+            }
+        }
 
-  // 图表2：TSH、TG、TGAb、TPOAb
-  const ctx2 = document.getElementById('chart2').getContext('2d');
-  chart2 = new Chart(ctx2, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [
-        {label:'TSH', data:list.map(i=>i.tsh), borderColor:'#1f2937', tension:0.2},
-        {label:'TG', data:list.map(i=>i.tg), borderColor:'#f43f5e', tension:0.2},
-        {label:'TGAb', data:list.map(i=>i.tgab), borderColor:'#0ea5e9', tension:0.2},
-        {label:'TPOAb', data:list.map(i=>i.tpoab), borderColor:'#84cc16', tension:0.2}
-      ]
-    },
-    options: {responsive:true, maintainAspectRatio:false, plugins:{title:{display:true, text:'TSH、Tg、抗体指标趋势'}}
-  });
-}
+        // ========== 导入 & 导出 ==========
+        // 导出数据为JSON文件
+        function exportData() {
+            const list = getRecordData();
+            if (list.length === 0) {
+                alert("暂无数据可导出！");
+                return;
+            }
+            const jsonStr = JSON.stringify(list, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `甲状腺复查记录_${new Date().toLocaleDateString()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
 
-function destroyChart() {
-  if(chart1) chart1.destroy();
-  if(chart2) chart2.destroy();
-}
+        // 导入JSON备份文件
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!Array.isArray(data)) throw new Error("格式错误");
+                    saveRecordData(data);
+                    alert("数据导入成功！");
+                    renderTable();
+                    renderChart();
+                } catch (err) {
+                    alert("文件格式错误，请选择正确的备份JSON文件！");
+                }
+            };
+            reader.readAsText(file);
+            // 清空文件选择
+            e.target.value = '';
+        }
 
-// ===================== 5. 按钮事件绑定 =====================
-document.getElementById('saveBtn').addEventListener('click', function(){
-  const item = {
-    checkDate: document.getElementById('checkDate').value,
-    calcium: document.getElementById('calcium').value,
-    phosphorus: document.getElementById('phosphorus').value,
-    tsh: document.getElementById('tsh').value,
-    ft3: document.getElementById('ft3').value,
-    ft4: document.getElementById('ft4').value,
-    tgab: document.getElementById('tgab').value,
-    tpoab: document.getElementById('tpoab').value,
-    tg: document.getElementById('tg').value,
-    pth: document.getElementById('pth').value
-  };
-  if(!item.checkDate) {
-    alert('请选择复查日期！');
-    return;
-  }
-  const arr = getRecords();
-  arr.push(item);
-  saveRecords(arr);
-  alert('本次复查记录保存成功！');
-  // 清空输入框
-  document.querySelectorAll('input').forEach(inp=>inp.value='');
-  renderTable();
-});
+        // ========== 表格 & 图表渲染 ==========
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const list = getRecordData();
+            const ref = getReference();
+            tbody.innerHTML = '';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11">暂无复查记录，请录入数据</td></tr>';
+                return;
+            }
+            list.forEach((item, idx) => {
+                let tr = document.createElement('tr');
+                let html = `<td><button style="background:#f39c12;color:#fff;border:none;padding:4px 8px;border-radius:3px;font-size:12px" onclick="delRecord(${idx})">删除</button></td>`;
+                html += `<td>${item.date}</td>`;
+                keyList.forEach(key => {
+                    const val = item[key] || "-";
+                    const r = ref[key];
+                    let cls = "normal";
+                    if (val !== "-" && isAbnormal(val, r.min, r.max)) {
+                        cls = "danger";
+                    }
+                    html += `<td class="${cls}">${val}</td>`;
+                });
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
 
-document.getElementById('clearAllBtn').addEventListener('click', function(){
-  if(confirm('确定要永久清空本机所有复查数据？无法恢复！')) {
-    localStorage.removeItem(STORAGE_KEY);
-    renderTable();
-    alert('全部数据已清空');
-  }
-});
+        function renderChart() {
+            const list = getRecordData();
+            const ref = getReference();
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            const labels = list.map(item => item.date);
+            if (chartInstance) chartInstance.destroy();
 
-// 页面初始化加载
-window.onload = function(){
-  renderTable();
-  // 默认选中今天日期
-  document.getElementById('checkDate').valueAsDate = new Date();
-}
-</script>
+            const datasets = keyList.map((key, idx) => {
+                const color = `hsl(${idx * 36}, 70%, 50%)`;
+                return {
+                    label: ref[key].name,
+                    data: list.map(item => parseFloat(item[key]) || null),
+                    borderColor: color,
+                    backgroundColor: color + '33',
+                    fill: false,
+                    tension: 0.2
+                };
+            });
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { title: { display: true, text: "检测数值" } },
+                        x: { title: { display: true, text: "复查日期" } }
+                    }
+                }
+            });
+        }
+
+        // 页面初始化
+        window.onload = function() {
+            document.getElementById('recordDate').valueAsDate = new Date();
+            renderRefPanel();
+            renderTable();
+            renderChart();
+        }
+    </script>
 </body>
 </html>
