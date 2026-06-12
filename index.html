@@ -133,8 +133,6 @@
         input[type="file"] {
             display: none;
         }
-
-        /* 弹窗样式 */
         .mask {
             position: fixed;
             top: 0;
@@ -179,12 +177,25 @@
         .modal-btn-group button {
             flex: 1;
         }
+        /* 微信导出提示弹窗 */
+        .wx-tip {
+            position: fixed;
+            left: 15px;
+            right: 15px;
+            bottom: 20px;
+            background: #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>甲状腺术后复查记录表</h1>
 
-    <!-- 新增复查数据 -->
     <div class="card">
         <div class="form-title">新增复查数据</div>
         <div class="form-grid">
@@ -234,14 +245,12 @@
             <button class="btn-clear" onclick="clearAllData()">清空全部记录</button>
             <button class="btn-export" onclick="exportData()">导出全部数据</button>
             <button class="btn-import" onclick="document.getElementById('fileInput').click()">导入备份数据</button>
-            <!-- 参考值设置按钮 放在导入后面 -->
             <button class="btn-ref" onclick="openRefModal()">设置参考范围</button>
             <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
         </div>
         <p class="tip">💡 数据本地永久保存；红色=指标异常；导出可备份，导入可恢复历史记录</p>
     </div>
 
-    <!-- 历史记录表格 -->
     <div class="card">
         <div class="form-title">复查历史记录</div>
         <div class="table-wrap">
@@ -266,7 +275,6 @@
         </div>
     </div>
 
-    <!-- 趋势可视化图表 -->
     <div class="card">
         <div class="form-title">指标趋势走势图</div>
         <div class="chart-box">
@@ -274,7 +282,6 @@
         </div>
     </div>
 
-    <!-- 参考范围设置弹窗 -->
     <div class="mask" id="refMask">
         <div class="modal">
             <h3>指标参考范围设置</h3>
@@ -286,8 +293,9 @@
         </div>
     </div>
 
+    <div class="wx-tip" id="wxTip"></div>
+
     <script>
-        // 默认参考范围
         const defaultRef = {
             calcium: { min: 2.10, max: 2.60, name: "钙" },
             phosphorus: { min: 0.96, max: 1.62, name: "无机磷" },
@@ -302,7 +310,11 @@
         const keyList = Object.keys(defaultRef);
         let chartInstance = null;
 
-        // 弹窗开关
+        // 判断是否微信浏览器
+        function isWeChat() {
+            return /micromessenger/i.test(navigator.userAgent);
+        }
+
         function openRefModal() {
             document.getElementById('refMask').style.display = 'flex';
             renderRefPanel();
@@ -311,7 +323,6 @@
             document.getElementById('refMask').style.display = 'none';
         }
 
-        // 本地存储工具
         function getLocal(key) {
             const val = localStorage.getItem(key);
             return val ? JSON.parse(val) : null;
@@ -320,7 +331,6 @@
             localStorage.setItem(key, JSON.stringify(data));
         }
 
-        // 读取/保存 自定义参考值
         function getReference() {
             let ref = getLocal('thyroidRef');
             return ref ? ref : JSON.parse(JSON.stringify(defaultRef));
@@ -343,7 +353,6 @@
             renderChart();
         }
 
-        // 渲染参考值编辑面板（弹窗内）
         function renderRefPanel() {
             const ref = getReference();
             const panel = document.getElementById('refPanel');
@@ -363,7 +372,6 @@
             });
         }
 
-        // 复查记录操作
         function getRecordData() {
             let data = localStorage.getItem('thyroidRecord');
             return data ? JSON.parse(data) : [];
@@ -372,14 +380,12 @@
             localStorage.setItem('thyroidRecord', JSON.stringify(arr));
         }
 
-        // 判断指标是否异常
         function isAbnormal(val, min, max) {
             const num = parseFloat(val);
             if (isNaN(num)) return false;
             return num < min || num > max;
         }
 
-        // 新增记录
         function addRecord() {
             const date = document.getElementById('recordDate').value;
             if (!date) {
@@ -407,7 +413,6 @@
             renderChart();
         }
 
-        // 删除单条记录
         function delRecord(index) {
             let list = getRecordData();
             list.splice(index, 1);
@@ -416,7 +421,6 @@
             renderChart();
         }
 
-        // 清空所有记录
         function clearAllData() {
             if (confirm("确定清空所有复查记录？此操作不可恢复！")) {
                 localStorage.removeItem('thyroidRecord');
@@ -425,7 +429,7 @@
             }
         }
 
-        // 导入 & 导出
+        // 导出：微信→复制到剪贴板；普通浏览器→正常下载
         function exportData() {
             const list = getRecordData();
             if (list.length === 0) {
@@ -433,13 +437,30 @@
                 return;
             }
             const jsonStr = JSON.stringify(list, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `甲状腺复查记录_${new Date().toLocaleDateString()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const fileName = `甲状腺复查记录_${new Date().toLocaleDateString()}.json`;
+
+            if (isWeChat()) {
+                // 微信：复制到剪贴板
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    const tip = document.getElementById('wxTip');
+                    tip.innerText = "已复制到剪贴板！请粘贴到记事本，保存为 " + fileName;
+                    tip.style.display = "block";
+                    setTimeout(() => tip.style.display = "none", 4000);
+                }).catch(() => {
+                    alert("微信复制失败，请在右上角「...」→「在浏览器打开」后再导出");
+                });
+            } else {
+                // 普通浏览器：正常下载
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
         }
 
         function importData(e) {
@@ -462,7 +483,6 @@
             e.target.value = '';
         }
 
-        // 表格 & 图表渲染
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             const list = getRecordData();
@@ -527,7 +547,6 @@
             });
         }
 
-        // 页面初始化
         window.onload = function() {
             document.getElementById('recordDate').valueAsDate = new Date();
             renderTable();
