@@ -42,8 +42,7 @@
             padding-left: 10px;
             font-weight: 600;
         }
-        /* 微信端单列布局 */
-        .form-grid, .ref-grid {
+        .form-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
@@ -134,11 +133,50 @@
         input[type="file"] {
             display: none;
         }
+
+        /* 弹窗样式 */
+        .mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        .modal {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .ref-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
         .ref-grid .form-item > div {
             display: flex;
             gap: 8px;
         }
-        .ref-grid input {
+        .modal-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-btn-group button {
             flex: 1;
         }
     </style>
@@ -146,17 +184,7 @@
 <body>
     <h1>甲状腺术后复查记录表</h1>
 
-    <!-- 一、参考值自定义设置 -->
-    <div class="card">
-        <div class="form-title">参考范围设置（可自行修改）</div>
-        <div class="ref-grid" id="refPanel"></div>
-        <div class="btn-group">
-            <button class="btn-ref" onclick="saveReference()">保存参考范围</button>
-        </div>
-        <p class="tip">修改下限/上限后点击【保存参考范围】，异常判断规则立即生效</p>
-    </div>
-
-    <!-- 二、新增复查数据 -->
+    <!-- 新增复查数据 -->
     <div class="card">
         <div class="form-title">新增复查数据</div>
         <div class="form-grid">
@@ -206,12 +234,14 @@
             <button class="btn-clear" onclick="clearAllData()">清空全部记录</button>
             <button class="btn-export" onclick="exportData()">导出全部数据</button>
             <button class="btn-import" onclick="document.getElementById('fileInput').click()">导入备份数据</button>
+            <!-- 参考值设置按钮 放在导入后面 -->
+            <button class="btn-ref" onclick="openRefModal()">设置参考范围</button>
             <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
         </div>
         <p class="tip">💡 数据本地永久保存；红色=指标异常；导出可备份，导入可恢复历史记录</p>
     </div>
 
-    <!-- 三、历史记录表格 -->
+    <!-- 历史记录表格 -->
     <div class="card">
         <div class="form-title">复查历史记录</div>
         <div class="table-wrap">
@@ -236,11 +266,23 @@
         </div>
     </div>
 
-    <!-- 四、趋势可视化图表 -->
+    <!-- 趋势可视化图表 -->
     <div class="card">
         <div class="form-title">指标趋势走势图</div>
         <div class="chart-box">
             <canvas id="dataChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 参考范围设置弹窗 -->
+    <div class="mask" id="refMask">
+        <div class="modal">
+            <h3>指标参考范围设置</h3>
+            <div class="ref-grid" id="refPanel"></div>
+            <div class="modal-btn-group">
+                <button class="btn-ref" onclick="saveReference()">保存设置</button>
+                <button style="background:#999;color:#fff" onclick="closeRefModal()">关闭</button>
+            </div>
         </div>
     </div>
 
@@ -260,7 +302,16 @@
         const keyList = Object.keys(defaultRef);
         let chartInstance = null;
 
-        // ========== 本地存储工具 ==========
+        // 弹窗开关
+        function openRefModal() {
+            document.getElementById('refMask').style.display = 'flex';
+            renderRefPanel();
+        }
+        function closeRefModal() {
+            document.getElementById('refMask').style.display = 'none';
+        }
+
+        // 本地存储工具
         function getLocal(key) {
             const val = localStorage.getItem(key);
             return val ? JSON.parse(val) : null;
@@ -287,11 +338,12 @@
             });
             setLocal('thyroidRef', ref);
             alert("参考范围保存成功！");
+            closeRefModal();
             renderTable();
             renderChart();
         }
 
-        // 渲染参考值编辑面板
+        // 渲染参考值编辑面板（弹窗内）
         function renderRefPanel() {
             const ref = getReference();
             const panel = document.getElementById('refPanel');
@@ -311,7 +363,7 @@
             });
         }
 
-        // ========== 复查记录操作 ==========
+        // 复查记录操作
         function getRecordData() {
             let data = localStorage.getItem('thyroidRecord');
             return data ? JSON.parse(data) : [];
@@ -373,8 +425,7 @@
             }
         }
 
-        // ========== 导入 & 导出 ==========
-        // 导出数据为JSON文件
+        // 导入 & 导出
         function exportData() {
             const list = getRecordData();
             if (list.length === 0) {
@@ -391,7 +442,6 @@
             URL.revokeObjectURL(url);
         }
 
-        // 导入JSON备份文件
         function importData(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -409,11 +459,10 @@
                 }
             };
             reader.readAsText(file);
-            // 清空文件选择
             e.target.value = '';
         }
 
-        // ========== 表格 & 图表渲染 ==========
+        // 表格 & 图表渲染
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             const list = getRecordData();
@@ -481,7 +530,6 @@
         // 页面初始化
         window.onload = function() {
             document.getElementById('recordDate').valueAsDate = new Date();
-            renderRefPanel();
             renderTable();
             renderChart();
         }
